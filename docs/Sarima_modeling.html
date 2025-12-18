@@ -333,7 +333,7 @@ div.tocify {
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="sarima_modeling.html">SARIMA Modeling</a>
+      <a href="Sarima_modeling.html">SARIMA Modeling</a>
     </li>
   </ul>
 </li>
@@ -378,12 +378,49 @@ respiratory infection surveillance data to characterize temporal
 dynamics and forecast future infection trends.</p>
 <p>Load Required Libraries</p>
 <pre class="r"><code>library(cdcfluview)
-library(tidyverse)
-library(lubridate)
-library(forecast)
-library(ggplot2)
-library(plotly)
-library(tseries)</code></pre>
+library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## Warning: package &#39;tibble&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;readr&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## Warning: package &#39;purrr&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;stringr&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;forcats&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;lubridate&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────
+## ✔ dplyr     1.1.4     ✔ readr     2.1.6
+## ✔ forcats   1.0.1     ✔ stringr   1.6.0
+## ✔ ggplot2   4.0.1     ✔ tibble    3.3.0
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.2.0     
+## ── Conflicts ───────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(lubridate)
+library(forecast)</code></pre>
+<pre><code>## Warning: package &#39;forecast&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;quantmod&#39;:
+##   method            from
+##   as.zoo.data.frame zoo</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(plotly)</code></pre>
+<pre><code>## Warning: package &#39;plotly&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## 
+## Attaching package: &#39;plotly&#39;
+## 
+## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     last_plot
+## 
+## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter
+## 
+## The following object is masked from &#39;package:graphics&#39;:
+## 
+##     layout</code></pre>
+<pre class="r"><code>library(tseries)</code></pre>
+<pre><code>## Warning: package &#39;tseries&#39; was built under R version 4.4.1</code></pre>
 <p><strong>Download Publicly Available Respiratory Infection
 Data</strong></p>
 <p>Use CDC FluView data, which provides weekly Influenza-Like Illness
@@ -407,7 +444,7 @@ frequency = 52)</code></pre>
 <p><strong>Exploratory Visualization</strong></p>
 <pre class="r"><code>autoplot(ili_ts) +labs(title = &quot;Weekly Respiratory Infection Trends (ILI Proxy)&quot;,
                        x = &quot;Year&quot;,y = &quot;ILI (%)&quot;) +theme_minimal()</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <p><strong>Verifying SARIMA Assumptions</strong></p>
 <p>SARIMA models assume the time series is stationary (or can be made
 stationary). To test this, perform Augmented Dickey–Fuller Test.</p>
@@ -415,6 +452,8 @@ stationary). To test this, perform Augmented Dickey–Fuller Test.</p>
 <p>Null hypothesis (H₀): The series is non-stationary</p>
 <p>Alternative hypothesis (H₁): The series is stationary</p>
 <pre class="r"><code>adf.test(ili_ts, alternative = &quot;stationary&quot;)</code></pre>
+<pre><code>## Warning in adf.test(ili_ts, alternative = &quot;stationary&quot;): p-value smaller than
+## printed p-value</code></pre>
 <pre><code>## 
 ##  Augmented Dickey-Fuller Test
 ## 
@@ -432,12 +471,12 @@ meaning the data are sufficiently stationary for SARIMA modeling.</p>
 </ul>
 <pre class="r"><code>dec &lt;- decompose(ili_ts, type = &quot;additive&quot;)
 plot(dec)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <p><strong>Inspect autocorrelation patterns</strong></p>
 <pre class="r"><code>acf(ili_ts, main = &quot;ACF&quot;)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
 <pre class="r"><code>pacf(ili_ts, main = &quot;PACF&quot;)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
 <p>The clear cyclical structure indicates that a SARIMA model is
 appropriate.</p>
 <p><strong>Fit the SARIMA Model</strong></p>
@@ -504,9 +543,9 @@ arimaorder(sarima_model)</code></pre>
 residuals’ ACF and PACF to see if any autocorrelation remains.</p>
 <pre class="r"><code>res &lt;- residuals(sarima_model)
 acf(res)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
 <pre class="r"><code>pacf(res)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-9-2.png" width="672" />
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-2.png" width="672" />
 If no spikes exceed the dashed lines, residuals behave like white
 noise.</p>
 <p><strong>Ljung–Box Test</strong></p>
@@ -514,7 +553,7 @@ noise.</p>
 <p>Alternative hypothesis (H₁): Residuals are not random
 (autocorrelation exists)</p>
 <pre class="r"><code>checkresiduals(sarima_model)</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <pre><code>## 
 ##  Ljung-Box test
 ## 
@@ -594,7 +633,7 @@ x = &quot;Year&quot;,
 y = &quot;Predicted ILI (%)&quot;
 ) +
 theme_minimal()</code></pre>
-<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
 <p>Conclusion:</p>
 <p>This analysis demonstrates how SARIMA models can be used to analyze
 and forecast seasonal respiratory infection trends, providing
