@@ -1,0 +1,22 @@
+name: "Applied Data Science & Analytics Portfolio"
+output_dir: "docs"
+
+navbar:
+  title: "Applied Data Science & Analytics"
+  left:
+    - text: "Home"
+#      href: index.html
+
+    - text: "Data Modeling"
+      menu:
+        - text: "SARIMA Modeling"
+          href: sarima_modeling.html
+
+output:
+  html_document:
+  theme: readable
+toc: true
+toc_depth: 3
+toc_float: true
+number_sections: false
+df_print: paged

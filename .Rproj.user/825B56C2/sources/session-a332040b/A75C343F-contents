@@ -1,0 +1,199 @@
+---
+title: "SARIMA Modeling"
+author: "Rashika Ranasinghe"
+date: "2025-12-18"
+output: html_document
+---
+The SARIMA (Seasonal ARIMA) model extends the ARIMA framework by explicitly modeling seasonal patterns in time series data.
+
+A SARIMA model consists of two components:
+
+1. Non-seasonal ARIMA: ARIMA(p, d, q)
+
+2. Seasonal component: (P, D, Q, S)
+
+
+**Model Parameters**
+
+p - Autoregressive (AR) lags 
+
+d - Order of differencing 
+
+q - Moving average (MA) lags 
+
+P - Seasonal AR lags 
+
+D - Seasonal differencing 
+
+Q - Seasonal MA lags 
+
+S - Length of seasonal cycle
+
+SARIMA models are appropriate when the data show repeating seasonal fluctuations, such as weekly or yearly patterns.
+
+In this section, I apply a SARIMA model to publicly available respiratory infection surveillance data to characterize temporal dynamics and forecast future infection trends.
+
+Load Required Libraries
+```{r }
+library(cdcfluview)
+library(tidyverse)
+library(lubridate)
+library(forecast)
+library(ggplot2)
+library(plotly)
+library(tseries)
+```
+
+**Download Publicly Available Respiratory Infection Data**
+
+Use CDC FluView data, which provides weekly Influenza-Like Illness (ILI) surveillance data for the United States.
+
+```{r}
+ili_data <- ilinet(region = "national", years = 2015:2024)
+```
+
+**Prepare Time Series Data**
+
+```{r}
+ili_ts_data <- ili_data %>%
+select(week_start, weighted_ili) %>%
+arrange(week_start)
+
+head(ili_ts_data)
+
+# Convert the data into a weekly time-series object:
+ili_ts <- ts(ili_ts_data$weighted_ili,
+             start = c(year(min(ili_ts_data$week_start)),week(min(ili_ts_data$week_start))),
+frequency = 52)
+```
+
+
+**Exploratory Visualization**
+```{r}
+autoplot(ili_ts) +labs(title = "Weekly Respiratory Infection Trends (ILI Proxy)",
+                       x = "Year",y = "ILI (%)") +theme_minimal()
+```
+
+**Verifying SARIMA Assumptions**
+
+
+SARIMA models assume the time series is stationary (or can be made stationary). To test this, perform Augmented Dickey–Fuller Test.
+
+Hypotheses:
+
+
+Null hypothesis (H₀): The series is non-stationary
+
+
+Alternative hypothesis (H₁): The series is stationary
+
+```{r}
+adf.test(ili_ts, alternative = "stationary")
+```
+
+A p-value < 0.05 indicates that the null hypothesis is rejected, meaning the data are sufficiently stationary for SARIMA modeling.
+
+
+
+
+**Decomposing the Time Series (STL)**
+
+Time series decomposition separates the data into:
+
+*   Trend – long-term movement
+
+*   Seasonality – repeating cycles
+
+*   Residuals – random noise
+
+```{r}
+dec <- decompose(ili_ts, type = "additive")
+plot(dec)
+```
+
+
+**Inspect autocorrelation patterns**
+```{r}
+acf(ili_ts, main = "ACF")
+pacf(ili_ts, main = "PACF")
+```
+
+The clear cyclical structure indicates that a SARIMA model is appropriate.
+
+
+
+**Fit the SARIMA Model**
+
+SARIMA models are effective for this data set because they capture:
+Strong seasonality
+Temporal autocorrelation
+Non-stationarity
+
+```{r}
+sarima_model <- auto.arima(
+  ili_ts,
+  trace = TRUE,
+  approximation = FALSE,
+  ic="aic", test = "kpss")
+
+summary(sarima_model)
+
+# Model Order
+arimaorder(sarima_model)
+```
+
+
+
+**Model Diagnostics**
+
+Good models leave no autocorrelation in the residuals.
+Compute the residuals’ ACF and PACF to see if any autocorrelation remains.
+```{r}
+res <- residuals(sarima_model)
+acf(res)
+pacf(res)
+```
+If no spikes exceed the dashed lines, residuals behave like white noise.
+
+
+
+**Ljung–Box Test**
+
+
+Null hypothesis (H₀): Residuals are random (no autocorrelation)
+
+
+Alternative hypothesis (H₁): Residuals are not random (autocorrelation exists)
+
+
+```{r}
+checkresiduals(sarima_model)
+```
+p-value > 0.05: fail to reject the null hypothesis. No evidence of remaining autocorrelation
+
+This indicates the model has captured the trend and seasonality well.
+
+
+
+**Forecast Future Respiratory Infection Patterns**
+```{r}
+forecast_12_months <- forecast(
+sarima_model,
+h = 52
+)
+
+forecast_12_months
+
+# Visualize Forecasts
+autoplot(forecast_12_months) +
+labs(
+title = "SARIMA Forecast of Respiratory Infections",
+x = "Year",
+y = "Predicted ILI (%)"
+) +
+theme_minimal()
+```
+
+Conclusion:
+
+This analysis demonstrates how SARIMA models can be used to analyze and forecast seasonal respiratory infection trends, providing interpretable results and quantified uncertainty—making them well-suited for public health surveillance and planning.

@@ -1,0 +1,34 @@
+"0","knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)"
+"0","library(cdcfluview)"
+"0","library(tidyverse)"
+"0","library(lubridate)"
+"0","library(forecast)"
+"0","library(ggplot2)"
+"0","library(plotly)"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"2","Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+"
+"2","
+Attaching package: ‘plotly’
+
+"
+"2","The following object is masked from ‘package:ggplot2’:
+
+    last_plot
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    filter
+
+"
+"2","The following object is masked from ‘package:graphics’:
+
+    layout
+
+"

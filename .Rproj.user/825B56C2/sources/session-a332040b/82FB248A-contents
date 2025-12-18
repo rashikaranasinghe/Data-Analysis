@@ -1,0 +1,365 @@
+---
+title: "GO_Enrichment_Analysis"
+output: html_document
+author: "Rashika Ranasinghe"
+date: "2025-11-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Perform a GO Enrichment Analysis for the genes in the biggest inversion in the human genome, chr8p23.1, approximately 4.5 to 12 megabases (Mb) in size.
+
+```{r cars}
+# Load the required libraries
+library(biomaRt)
+library(gggenes)
+library(ggplot2)
+library(dplyr)
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(enrichplot)
+library(tidyverse)
+library(Gviz)
+library(igraph)
+library(ggraph)
+
+```
+
+Pull genes that are on the inversion region from Ensembl
+```{r}
+# Define inversion coordinates
+chromosome <- "8"
+inv_start <- 7370695
+inv_end   <- 11678224
+
+# Connect to Ensembl
+mart <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+
+# Query Ensembl for genes in the inversion
+genes <- getBM(
+  attributes = c("ensembl_gene_id", "external_gene_name", "description",
+    "chromosome_name", "start_position", "end_position", "gene_biotype"),
+  filters = c("chromosome_name", "start", "end"),
+  values = list(chromosome, inv_start, inv_end),
+  mart = mart
+)
+```
+
+
+Make a diagram of all the genes on the inversion region
+```{r  fig.width=10, fig.height=10}
+# Prepare the data
+gene_plot_df <- genes
+gene_plot_df$gene_name <- gene_plot_df$external_gene_name
+gene_plot_df$start <- gene_plot_df$start_position
+gene_plot_df$end   <- gene_plot_df$end_position
+
+# Plot genes along the chromosome
+ggplot(gene_plot_df, aes(
+  xmin = start,
+  xmax = end,
+  y = gene_biotype,     # improvement: separate rows by biotype
+  fill = gene_biotype,
+  label = gene_name
+)) +
+  geom_gene_arrow(arrowhead_width = unit(2, "mm")) +
+  geom_text(aes(x = (start + end)/2, y = as.numeric(as.factor(gene_biotype)) + 0.2),
+            size = 2, angle = 90, hjust = 0) +
+  scale_fill_brewer(palette = "Set3") +
+  ggtitle("Genes in 8p23.1 Inversion - Human Genome") +
+  theme_bw() +   labs(x = "Chromosomal Position")   +
+  theme(legend.position = "bottom")
+
+```
+
+GO enrichment analysis (For all biotypes)
+```{r}
+# Convert to ENTREZ
+entrez_ids <- bitr(
+  genes$external_gene_name,
+  fromType = "SYMBOL",
+  toType = "ENTREZID",
+  OrgDb = org.Hs.eg.db
+)$ENTREZID
+
+enrichFrame <- enrichGO(
+  gene = entrez_ids,
+  OrgDb = org.Hs.eg.db,
+  keyType = "ENTREZID",
+  ont = "ALL",              
+  pvalueCutoff = 0.05,
+  readable = TRUE
+)
+
+# Save enrichment table
+#write.csv(as.data.frame(ego), "GO_enrichment_chr8p23.1.csv", row.names = FALSE)
+```
+
+Plot the analysis results
+```{r fig.width=10, fig.height=7}
+# 1. Bar plot
+barplot(enrichFrame,
+        x = "GeneRatio", # plot the gene ratio = # gene of that enrichment / toal # genes
+        color = "p.adjust",
+        title = "GO Enrichment (n = 31)",
+        showCategory = 31, # plot all the GO enrichments
+        label_format = 80) + theme(
+plot.margin = margin(10, 1, 1, 10) # Top, Right, Bottom, Left margins in points
+)
+
+```
+
+
+```{r fig.width=10, fig.height=7}
+# 2. Dot plot
+dotplot(enrichFrame,
+        x = "Count",
+        color = "p.adjust",
+        title = "GO Enrichment (n = 31)",
+        showCategory = 31,
+        label_format = 80) +
+  theme(plot.margin = margin(20, 20, 20, 20))
+
+```
+split enrichment results by ontology
+
+```{r fig.width=8, fig.height=10}
+# make the enrichFrame object a dataframe 
+enrich_df <- as.data.frame(enrichFrame)
+
+# make seperate vectors for each ontology group
+ego_BP <- enrich_df %>% filter(ONTOLOGY == "BP")
+ego_CC <- enrich_df %>% filter(ONTOLOGY == "CC")
+ego_MF <- enrich_df %>% filter(ONTOLOGY == "MF")
+table(enrich_df$ONTOLOGY)
+
+# Plot the data
+dotplot(enrichFrame, split = "ONTOLOGY") +
+  facet_grid(ONTOLOGY ~ ., scales = "free",
+             labeller = labeller(ONTOLOGY =  c("BP" = "Biological Process",
+                                               "CC" = "Cellular Component",
+                                               "MF" = "Molecular Function"))) +
+  ggtitle("GO Enrichment Separated by Ontology (BP, CC, MF)")
+```
+
+
+```{r fig.width=10, fig.height=7}
+# 3. Category Netplot
+# Helpful to see which genes are involved in enriched pathways and genes that may belong to multiple annotation categories
+cnetplot(enrichFrame,
+         categorySize = "pvalue",
+         showCategory = 31)
+
+```
+How to interprit a netplot?
+* Clusters: GO terms that are close together or highly connected often describe related biological processes.
+* Node size: Larger nodes indicate GO terms associated with more genes in your dataset.
+* Node color: Darker or more intense colors usually indicate higher statistical significance (lower p-values).
+* Edges: Thicker edges show GO terms that share more genes. This helps you see functional overlap or redundancy among GO terms.
+
+Color the enrichments that are related to immune responses.
+```{r fig.width=10, fig.height=7}
+# Split geneID column into individual gene-GO pairs
+df_links <- data.frame()
+for(i in 1:nrow(enrichFrame@result)){
+  genes <- unlist(strsplit(enrichFrame@result$geneID[i], "/"))
+  go <- enrichFrame@result$ID[i]
+  temp <- data.frame(GO = go, gene = genes, stringsAsFactors = FALSE)
+  df_links <- rbind(df_links, temp)
+}
+
+# Create igraph object
+edges <- df_links
+nodes <- data.frame(
+  name = unique(c(edges$GO, edges$gene)),
+  stringsAsFactors = FALSE
+)
+
+g <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Map GO IDs to Descriptions
+go_desc_map <- setNames(enrichFrame@result$Description, enrichFrame@result$ID)
+
+# Assign node labels: genes keep name, GO nodes get Description
+V(g)$label <- ifelse(V(g)$name %in% enrichFrame@result$ID, go_desc_map[V(g)$name], V(g)$name)
+
+# Define immune-related GO terms
+immune_go <- c("GO:0042742", "GO:0050829", "GO:0050830", "GO:0061760", 
+               "GO:0051873", "GO:0051702", "GO:0031640", "GO:0141061", 
+               "GO:0141060", "GO:0061844", "GO:0050832", "GO:0019730", 
+               "GO:0009620", "GO:0001906", "GO:0042056", "GO:0048020", 
+               "GO:0042379", "GO:0031731", "GO:0005126", "GO:0001530")
+
+# Assign colors
+V(g)$color <- ifelse(
+  V(g)$name %in% immune_go, "red",                  # immune GO terms
+  ifelse(V(g)$name %in% unlist(strsplit(enrichFrame@result$geneID, "/")), "skyblue", "skyblue")
+)
+
+# Plot network
+ggraph(g, layout = "kk") +
+  geom_edge_link(color = "gray70") +
+  geom_node_point(aes(color = color), size = 5) +
+  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
+  scale_color_identity() +
+  theme_void()
+
+
+```
+
+### Test whether the inversion contains more immune-related genes than expected by chance ########
+I do two different hypothesis test to check this 
+1. Hypergeometric Test 
+2. Permutation Test
+
+**Hypergeometric Test**
+Null Hypothesis : The inversion does not preferentially contain immune-related genes; any immune genes present are there solely by chance at the same proportion as in the genome.
+Alternative Hypothesis :The inversion is enriched for immune-related genes; immune genes occur there more frequently than expected by chance.
+
+```{r }
+# Convert to ENTREZ
+entrez_ids <- bitr(
+  genes$external_gene_name,
+  fromType = "SYMBOL",
+  toType = "ENTREZID",
+  OrgDb = org.Hs.eg.db
+)$ENTREZID
+
+# Convert gene symbols to Entrez IDs
+entrez_ids_inv <- bitr(
+  genes$external_gene_name,
+  fromType = "SYMBOL",
+  toType = "ENTREZID",
+  OrgDb = org.Hs.eg.db
+)$ENTREZID
+
+# Assign the go terms that are related to immune responses in the above data set 
+immune_go <- c("GO:0042742", "GO:0050829", "GO:0050830", "GO:0061760", "GO:0051873", 
+               "GO:0051702", "GO:0031640", "GO:0141061", "GO:0141060", "GO:0061844", 
+               "GO:0050832", "GO:0019730", "GO:0009620", "GO:0001906", "GO:0042056", 
+               "GO:0048020", "GO:0042379", "GO:0031731", "GO:0005126", "GO:0001530")
+
+# select all the genes under these GO terms in the human genome
+immune_genes <- AnnotationDbi::select(
+  org.Hs.eg.db,
+  keys = immune_go,
+  columns = c("ENTREZID"),
+  keytype = "GO"
+)$ENTREZID
+
+# Extract only the unique genes
+immune_genes <- unique(immune_genes)
+
+# Get all protein-coding genes in genome
+all_genes <- keys(org.Hs.eg.db, keytype = "ENTREZID")
+cat("Number of all the genes in the human genome:", length(all_genes), "\n")
+
+# Count immune genes in inversion
+k_obs <- sum(entrez_ids_inv %in% immune_genes)
+n <- length(entrez_ids_inv) # number of genes in the inversion = 109
+K <- length(immune_genes) # number of genes related to interested GO enrichment in the genome = 391
+N <- length(all_genes) # total number of protein-coding genes in the genome = 193430
+
+# Hypergeometric test
+# P(X >= k_obs)
+p_value <- phyper(k_obs - 1, K, N - K, n, lower.tail = FALSE)
+cat("Hypergeometric test p-value:", p_value, "\n")
+```
+Interpretation:
+p-value: 3.908494e-17  << 0.05
+The inversion on chromosome 8 contains significantly more immune-related genes than expected by chance. This suggests that the inversion may be functionally enriched for immune defense functions, potentially influencing host-pathogen interactions.
+
+Visualize the data:
+```{r fig.width=8, fig.height=5}
+# Histogram of expected immune-related gene counts
+set.seed(123)
+n_perm <- 100000
+immune_counts <- numeric(n_perm)
+
+for (i in 1:n_perm) {
+  random_genes <- sample(all_genes, n, replace = FALSE)
+  immune_counts[i] <- sum(random_genes %in% immune_genes)
+}
+
+df <- data.frame(immune_counts = immune_counts)
+
+# Compute a smoothed density using a kernel on jittered data
+set.seed(123)
+df$immune_jitter <- df$immune_counts + runif(nrow(df), -0.5, 0.5)
+
+ggplot(df, aes(x = immune_jitter)) +
+  geom_density(fill = "skyblue", alpha = 0.5, bw = 1.0) +  # bw sets smoothing bandwidth
+  geom_vline(xintercept = k_obs, color = "red", size = 1.5) +
+  annotate("text", x = k_obs + 1, 
+           y = max(density(df$immune_jitter, bw = 1.0)$y) * 0.9, 
+           label = paste("Observed =", k_obs), 
+           color = "red", hjust = 1.7) +
+  labs(
+    title = "Smoothed Null Distribution of Immune-related Genes",
+    x = "Number of Immune-related Genes",
+    y = "Density"
+  ) +
+  theme_minimal(base_size = 14)
+
+```
+
+**Permutation Test**
+Null Hypothesis : The inversion contains immune-related genes at the same proportion as the genome.
+Alternative Hypothesis: The number of immune-related genes in the inversion is greater than expected under random sampling.
+
+```{r}
+# Count immune genes in inversion
+k_obs <- sum(entrez_ids_inv %in% immune_genes) # Unique genes in inversion associated with any immune GO term — no double counting
+n <- length(entrez_ids_inv)
+# Example:
+# Suppose gene A belongs to GO:0042742 and also GO:0050829. Your table counts it twice, but your script counts it once.
+
+#Permutation test
+library(coin)
+set.seed(123)
+n_perm <- 100000
+immune_counts <- numeric(n_perm)
+
+for (i in 1:n_perm) {
+  random_genes <- sample(all_genes, n, replace = FALSE) # sample genes randomy from the whole genome, the same # genes as in the inversion
+  immune_counts[i] <- sum(random_genes %in% immune_genes) # count how many genes are related to interested GO enrichments
+}
+
+# Empirical p-value (one-sided: enrichment)
+p_empirical <- mean(immune_counts >= k_obs)
+cat("Empirical permutation test p-value:", p_empirical, "\n")
+```
+
+Interpretation:
+p-value: 0  << 0.05
+The inversion on chromosome 8 is significantly enriched for immune-defense genes.This supports your GO enrichment finding: the high number of immune-related genes is not due to random chance.
+
+Visualize the data:
+```{r  fig.width=8, fig.height=5}
+df <- data.frame(immune_counts = immune_counts)
+
+# Jitter for smooth density
+set.seed(123)
+df$immune_jitter <- df$immune_counts + runif(nrow(df), -0.5, 0.5)
+
+# Compute density for placing text
+dens <- density(df$immune_jitter, bw = 1.0)
+dens_df <- data.frame(x = dens$x, y = dens$y)
+y_label <- dens_df$y[which.min(abs(dens_df$x - k_obs))]
+
+# Plot
+ggplot(df, aes(x = immune_jitter)) +
+  geom_density(fill = "skyblue", alpha = 0.5, bw = 1.0) +
+  geom_vline(xintercept = k_obs, color = "red", size = 1.5) +
+  annotate( "text",x = k_obs,y = y_label + 0.31,
+  label = str_wrap(paste("Gene count in the inversion segment =", k_obs), width = 22),
+  color = "red",hjust = 1.1) +
+  xlim(0, 15) +
+  labs(
+    title = "Permutation Null Distribution of Immune-related Genes",
+    x = "Number of Immune-related Genes",
+    y = "Density") +
+  theme_light(base_size = 14)
+```

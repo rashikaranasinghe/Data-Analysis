@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Rashika Ranasinghe" />
+
+<meta name="date" content="2025-12-18" />
+
+<title>SARIMA Modeling</title>
+
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/readable.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Applied Data Science & Analytics</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Data Modeling
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="sarima_modeling.html">SARIMA Modeling</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">SARIMA Modeling</h1>
+<h4 class="author">Rashika Ranasinghe</h4>
+<h4 class="date">2025-12-18</h4>
+
+</div>
+
+
+<p>The SARIMA (Seasonal ARIMA) model extends the ARIMA framework by
+explicitly modeling seasonal patterns in time series data.</p>
+<p>A SARIMA model consists of two components:</p>
+<ol style="list-style-type: decimal">
+<li><p>Non-seasonal ARIMA: ARIMA(p, d, q)</p></li>
+<li><p>Seasonal component: (P, D, Q, S)</p></li>
+</ol>
+<p><strong>Model Parameters</strong></p>
+<p>p - Autoregressive (AR) lags</p>
+<p>d - Order of differencing</p>
+<p>q - Moving average (MA) lags</p>
+<p>P - Seasonal AR lags</p>
+<p>D - Seasonal differencing</p>
+<p>Q - Seasonal MA lags</p>
+<p>S - Length of seasonal cycle</p>
+<p>SARIMA models are appropriate when the data show repeating seasonal
+fluctuations, such as weekly or yearly patterns.</p>
+<p>In this section, I apply a SARIMA model to publicly available
+respiratory infection surveillance data to characterize temporal
+dynamics and forecast future infection trends.</p>
+<p>Load Required Libraries</p>
+<pre class="r"><code>library(cdcfluview)
+library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## Warning: package &#39;tibble&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;readr&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## Warning: package &#39;purrr&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;stringr&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;forcats&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Warning: package &#39;lubridate&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.6
+## ✔ forcats   1.0.1     ✔ stringr   1.6.0
+## ✔ ggplot2   4.0.1     ✔ tibble    3.3.0
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.2.0     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(lubridate)
+library(forecast)</code></pre>
+<pre><code>## Warning: package &#39;forecast&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;quantmod&#39;:
+##   method            from
+##   as.zoo.data.frame zoo</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(plotly)</code></pre>
+<pre><code>## Warning: package &#39;plotly&#39; was built under R version 4.4.1</code></pre>
+<pre><code>## 
+## Attaching package: &#39;plotly&#39;
+## 
+## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     last_plot
+## 
+## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter
+## 
+## The following object is masked from &#39;package:graphics&#39;:
+## 
+##     layout</code></pre>
+<pre class="r"><code>library(tseries)</code></pre>
+<pre><code>## Warning: package &#39;tseries&#39; was built under R version 4.4.1</code></pre>
+<p><strong>Download Publicly Available Respiratory Infection
+Data</strong></p>
+<p>Use CDC FluView data, which provides weekly Influenza-Like Illness
+(ILI) surveillance data for the United States.</p>
+<pre class="r"><code>ili_data &lt;- ilinet(region = &quot;national&quot;, years = 2015:2024)</code></pre>
+<p><strong>Prepare Time Series Data</strong></p>
+<pre class="r"><code>ili_ts_data &lt;- ili_data %&gt;%
+select(week_start, weighted_ili) %&gt;%
+arrange(week_start)
+
+head(ili_ts_data)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["week_start"],"name":[1],"type":["date"],"align":["right"]},{"label":["weighted_ili"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"2015-10-04","2":"1.22559"},{"1":"2015-10-11","2":"1.31066"},{"1":"2015-10-18","2":"1.37110"},{"1":"2015-10-25","2":"1.39171"},{"1":"2015-11-01","2":"1.43712"},{"1":"2015-11-08","2":"1.50165"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># Convert the data into a weekly time-series object:
+ili_ts &lt;- ts(ili_ts_data$weighted_ili,
+             start = c(year(min(ili_ts_data$week_start)),week(min(ili_ts_data$week_start))),
+frequency = 52)</code></pre>
+<p><strong>Exploratory Visualization</strong></p>
+<pre class="r"><code>autoplot(ili_ts) +labs(title = &quot;Weekly Respiratory Infection Trends (ILI Proxy)&quot;,
+                       x = &quot;Year&quot;,y = &quot;ILI (%)&quot;) +theme_minimal()</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><strong>Verifying SARIMA Assumptions</strong></p>
+<p>SARIMA models assume the time series is stationary (or can be made
+stationary). To test this, perform Augmented Dickey–Fuller Test.</p>
+<p>Hypotheses:</p>
+<p>Null hypothesis (H₀): The series is non-stationary</p>
+<p>Alternative hypothesis (H₁): The series is stationary</p>
+<pre class="r"><code>adf.test(ili_ts, alternative = &quot;stationary&quot;)</code></pre>
+<pre><code>## Warning in adf.test(ili_ts, alternative = &quot;stationary&quot;): p-value smaller than
+## printed p-value</code></pre>
+<pre><code>## 
+##  Augmented Dickey-Fuller Test
+## 
+## data:  ili_ts
+## Dickey-Fuller = -5.9415, Lag order = 8, p-value = 0.01
+## alternative hypothesis: stationary</code></pre>
+<p>A p-value &lt; 0.05 indicates that the null hypothesis is rejected,
+meaning the data are sufficiently stationary for SARIMA modeling.</p>
+<p><strong>Decomposing the Time Series (STL)</strong></p>
+<p>Time series decomposition separates the data into:</p>
+<ul>
+<li><p>Trend – long-term movement</p></li>
+<li><p>Seasonality – repeating cycles</p></li>
+<li><p>Residuals – random noise</p></li>
+</ul>
+<pre class="r"><code>dec &lt;- decompose(ili_ts, type = &quot;additive&quot;)
+plot(dec)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p><strong>Inspect autocorrelation patterns</strong></p>
+<pre class="r"><code>acf(ili_ts, main = &quot;ACF&quot;)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>pacf(ili_ts, main = &quot;PACF&quot;)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
+<p>The clear cyclical structure indicates that a SARIMA model is
+appropriate.</p>
+<p><strong>Fit the SARIMA Model</strong></p>
+<p>SARIMA models are effective for this data set because they capture:
+Strong seasonality Temporal autocorrelation Non-stationarity</p>
+<pre class="r"><code>sarima_model &lt;- auto.arima(
+  ili_ts,
+  trace = TRUE,
+  approximation = FALSE,
+  ic=&quot;aic&quot;, test = &quot;kpss&quot;)</code></pre>
+<pre><code>## 
+##  ARIMA(2,0,2)(1,1,1)[52] with drift         : Inf
+##  ARIMA(0,0,0)(0,1,0)[52] with drift         : 1652.422
+##  ARIMA(1,0,0)(1,1,0)[52] with drift         : 385.6557
+##  ARIMA(0,0,1)(0,1,1)[52] with drift         : Inf
+##  ARIMA(0,0,0)(0,1,0)[52]                    : 1655.53
+##  ARIMA(1,0,0)(0,1,0)[52] with drift         : 455.9055
+##  ARIMA(1,0,0)(2,1,0)[52] with drift         : 368.9107
+##  ARIMA(1,0,0)(2,1,1)[52] with drift         : Inf
+##  ARIMA(1,0,0)(1,1,1)[52] with drift         : Inf
+##  ARIMA(0,0,0)(2,1,0)[52] with drift         : 1589.925
+##  ARIMA(2,0,0)(2,1,0)[52] with drift         : Inf
+##  ARIMA(1,0,1)(2,1,0)[52] with drift         : Inf
+##  ARIMA(0,0,1)(2,1,0)[52] with drift         : 1045.65
+##  ARIMA(2,0,1)(2,1,0)[52] with drift         : Inf
+##  ARIMA(1,0,0)(2,1,0)[52]                    : 367.1148
+##  ARIMA(1,0,0)(1,1,0)[52]                    : 383.813
+##  ARIMA(1,0,0)(2,1,1)[52]                    : Inf
+##  ARIMA(1,0,0)(1,1,1)[52]                    : Inf
+##  ARIMA(0,0,0)(2,1,0)[52]                    : Inf
+##  ARIMA(2,0,0)(2,1,0)[52]                    : 170.2628
+##  ARIMA(2,0,0)(1,1,0)[52]                    : 202.4692
+##  ARIMA(2,0,0)(2,1,1)[52]                    : Inf
+##  ARIMA(2,0,0)(1,1,1)[52]                    : Inf
+##  ARIMA(3,0,0)(2,1,0)[52]                    : Inf
+##  ARIMA(2,0,1)(2,1,0)[52]                    : Inf
+##  ARIMA(1,0,1)(2,1,0)[52]                    : 212.2659
+##  ARIMA(3,0,1)(2,1,0)[52]                    : Inf
+## 
+##  Best model: ARIMA(2,0,0)(2,1,0)[52]</code></pre>
+<pre class="r"><code>summary(sarima_model)</code></pre>
+<pre><code>## Series: ili_ts 
+## ARIMA(2,0,0)(2,1,0)[52] 
+## 
+## Coefficients:
+##          ar1      ar2     sar1     sar2
+##       1.5311  -0.5884  -0.5313  -0.2874
+## s.e.  0.0373   0.0372   0.0469   0.0470
+## 
+## sigma^2 = 0.07927:  log likelihood = -80.13
+## AIC=170.26   AICc=170.39   BIC=191.02
+## 
+## Training set error measures:
+##                      ME     RMSE       MAE         MPE     MAPE    MASE
+## Training set 0.01266028 0.265992 0.1474295 -0.09409537 6.155824 0.16978
+##                    ACF1
+## Training set 0.03998213</code></pre>
+<pre class="r"><code># Model Order
+arimaorder(sarima_model)</code></pre>
+<pre><code>##         p         d         q         P         D         Q Frequency 
+##         2         0         0         2         1         0        52</code></pre>
+<p><strong>Model Diagnostics</strong></p>
+<p>Good models leave no autocorrelation in the residuals. Compute the
+residuals’ ACF and PACF to see if any autocorrelation remains.</p>
+<pre class="r"><code>res &lt;- residuals(sarima_model)
+acf(res)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>pacf(res)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-2.png" width="672" />
+If no spikes exceed the dashed lines, residuals behave like white
+noise.</p>
+<p><strong>Ljung–Box Test</strong></p>
+<p>Null hypothesis (H₀): Residuals are random (no autocorrelation)</p>
+<p>Alternative hypothesis (H₁): Residuals are not random
+(autocorrelation exists)</p>
+<pre class="r"><code>checkresiduals(sarima_model)</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre><code>## 
+##  Ljung-Box test
+## 
+## data:  Residuals from ARIMA(2,0,0)(2,1,0)[52]
+## Q* = 67.987, df = 100, p-value = 0.994
+## 
+## Model df: 4.   Total lags used: 104</code></pre>
+<p>p-value &gt; 0.05: fail to reject the null hypothesis. No evidence of
+remaining autocorrelation</p>
+<p>This indicates the model has captured the trend and seasonality
+well.</p>
+<p><strong>Forecast Future Respiratory Infection Patterns</strong></p>
+<pre class="r"><code>forecast_12_months &lt;- forecast(
+sarima_model,
+h = 52
+)
+
+forecast_12_months</code></pre>
+<pre><code>##          Point Forecast       Lo 80    Hi 80       Lo 95    Hi 95
+## 2025.769       1.772731  1.41190544 2.133556  1.22089607 2.324565
+## 2025.788       1.969956  1.31009188 2.629820  0.96078095 2.979131
+## 2025.808       2.160957  1.24614662 3.075767  0.76187546 3.560038
+## 2025.827       2.619931  1.50055848 3.739303  0.90799867 4.331863
+## 2025.846       3.068134  1.79099588 4.345271  1.11492006 5.021347
+## 2025.865       3.386397  1.99110372 4.781689  1.25248033 5.520313
+## 2025.885       3.649767  2.16806529 5.131469  1.38369981 5.915834
+## 2025.904       4.269370  2.72575541 5.812985  1.90861514 6.630125
+## 2025.923       4.403603  2.81642811 5.990778  1.97622853 6.830977
+## 2025.942       4.479044  2.86172650 6.096361  2.00557043 6.952517
+## 2025.962       4.752461  3.11460295 6.390318  2.24757344 7.257348
+## 2025.981       5.484275  3.83261822 7.135931  2.95828402 8.010266
+## 2026.000       6.289629  4.62882481 7.950433  3.74964827 8.829609
+## 2026.019       5.405981  3.73918793 7.072774  2.85684110 7.955120
+## 2026.038       4.431342  2.76067360 6.102010  1.87627528 6.986408
+## 2026.058       4.474574  2.80142511 6.147722  1.91571376 7.033434
+## 2026.077       5.036368  3.36164869 6.711088  2.47510561 7.597631
+## 2026.096       5.457320  3.78161506 7.133026  2.89455027 8.020090
+## 2026.115       5.493390  3.81707253 7.169708  2.92968351 8.057097
+## 2026.135       5.040671  3.36397612 6.717366  2.47638739 7.604955
+## 2026.154       4.540449  2.86352357 6.217374  1.97581288 7.105085
+## 2026.173       3.958597  2.28153173 5.635662  1.39374717 6.523446
+## 2026.192       3.581254  1.90410569 5.258403  1.01627675 6.146232
+## 2026.212       3.287014  1.60981521 4.964213  0.72195981 5.852068
+## 2026.231       2.937963  1.26073437 4.615191  0.37286333 5.503062
+## 2026.250       2.731856  1.05461082 4.409102  0.16673060 5.296982
+## 2026.269       2.485393  0.80813725 4.162649 -0.07974832 5.050534
+## 2026.288       2.325438  0.64817653 4.002700 -0.23971213 4.890588
+## 2026.308       2.159252  0.48198674 3.836517 -0.40590368 4.724407
+## 2026.327       2.096404  0.41913668 3.773670 -0.46875476 4.661562
+## 2026.346       2.005105  0.32783721 3.682373 -0.56005479 4.570265
+## 2026.365       1.925997  0.24872895 3.603266 -0.63916336 4.491158
+## 2026.385       1.896443  0.21917405 3.573712 -0.66871844 4.461604
+## 2026.404       1.843007  0.16573809 3.520276 -0.72215450 4.408169
+## 2026.423       1.841845  0.16457600 3.519114 -0.72331664 4.407007
+## 2026.442       1.610176 -0.06709317 3.287445 -0.95498584 4.175338
+## 2026.462       1.471304 -0.20596538 3.148573 -1.09385806 4.036466
+## 2026.481       1.374845 -0.30242466 3.052114 -1.19031735 3.940006
+## 2026.500       1.275868 -0.40140147 2.953137 -1.28929416 3.841030
+## 2026.519       1.207203 -0.47006670 2.884472 -1.35795940 3.772364
+## 2026.538       1.229750 -0.44751964 2.907019 -1.33541234 3.794912
+## 2026.558       1.173641 -0.50362857 2.850910 -1.39152126 3.738803
+## 2026.577       1.190812 -0.48645710 2.868081 -1.37434980 3.755974
+## 2026.596       1.216245 -0.46102410 2.893514 -1.34891679 3.781407
+## 2026.615       1.280417 -0.39685267 2.957686 -1.28474536 3.845578
+## 2026.635       1.367071 -0.31019860 3.044340 -1.19809130 3.932233
+## 2026.654       1.604565 -0.07270402 3.281834 -0.96059672 4.169727
+## 2026.673       1.866792  0.18952277 3.544061 -0.69836993 4.431954
+## 2026.692       1.888854  0.21158450 3.566123 -0.67630820 4.454016
+## 2026.712       1.856835  0.17956598 3.534104 -0.70832672 4.421997
+## 2026.731       1.868707  0.19143728 3.545976 -0.69645542 4.433868
+## 2026.750       1.861007  0.18373803 3.538276 -0.70415467 4.426169</code></pre>
+<pre class="r"><code># Visualize Forecasts
+autoplot(forecast_12_months) +
+labs(
+title = &quot;SARIMA Forecast of Respiratory Infections&quot;,
+x = &quot;Year&quot;,
+y = &quot;Predicted ILI (%)&quot;
+) +
+theme_minimal()</code></pre>
+<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Conclusion:</p>
+<p>This analysis demonstrates how SARIMA models can be used to analyze
+and forecast seasonal respiratory infection trends, providing
+interpretable results and quantified uncertainty—making them well-suited
+for public health surveillance and planning.</p>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
