@@ -444,7 +444,7 @@ frequency = 52)</code></pre>
 <p><strong>Exploratory Visualization</strong></p>
 <pre class="r"><code>autoplot(ili_ts) +labs(title = &quot;Weekly Respiratory Infection Trends (ILI Proxy)&quot;,
                        x = &quot;Year&quot;,y = &quot;ILI (%)&quot;) +theme_minimal()</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <p><strong>Verifying SARIMA Assumptions</strong></p>
 <p>SARIMA models assume the time series is stationary (or can be made
 stationary). To test this, perform Augmented Dickey–Fuller Test.</p>
@@ -471,12 +471,12 @@ meaning the data are sufficiently stationary for SARIMA modeling.</p>
 </ul>
 <pre class="r"><code>dec &lt;- decompose(ili_ts, type = &quot;additive&quot;)
 plot(dec)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <p><strong>Inspect autocorrelation patterns</strong></p>
 <pre class="r"><code>acf(ili_ts, main = &quot;ACF&quot;)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
 <pre class="r"><code>pacf(ili_ts, main = &quot;PACF&quot;)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-7-2.png" width="672" /></p>
 <p>The clear cyclical structure indicates that a SARIMA model is
 appropriate.</p>
 <p><strong>Fit the SARIMA Model</strong></p>
@@ -543,9 +543,9 @@ arimaorder(sarima_model)</code></pre>
 residuals’ ACF and PACF to see if any autocorrelation remains.</p>
 <pre class="r"><code>res &lt;- residuals(sarima_model)
 acf(res)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
 <pre class="r"><code>pacf(res)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-9-2.png" width="672" />
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-9-2.png" width="672" />
 If no spikes exceed the dashed lines, residuals behave like white
 noise.</p>
 <p><strong>Ljung–Box Test</strong></p>
@@ -553,7 +553,7 @@ noise.</p>
 <p>Alternative hypothesis (H₁): Residuals are not random
 (autocorrelation exists)</p>
 <pre class="r"><code>checkresiduals(sarima_model)</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <pre><code>## 
 ##  Ljung-Box test
 ## 
@@ -633,7 +633,7 @@ x = &quot;Year&quot;,
 y = &quot;Predicted ILI (%)&quot;
 ) +
 theme_minimal()</code></pre>
-<p><img src="Sarima_modeling_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p><img src="sarima_modeling_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
 <p>Conclusion:</p>
 <p>This analysis demonstrates how SARIMA models can be used to analyze
 and forecast seasonal respiratory infection trends, providing
