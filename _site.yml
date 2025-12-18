@@ -4,6 +4,9 @@ output_dir: "docs"
 navbar:
   title: "Applied Data Science & Analytics"
   left:
+    - text: "Home"
+      href: index.html
+
     - text: "Data Modeling"
       menu:
         - text: "SARIMA Modeling"
